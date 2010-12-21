@@ -8,7 +8,7 @@ class Object
     @superator_queue.unshift '-'
     self
   end
-  
+
   def +@
     extend SuperatorFlag
     @superator_queue ||= []
