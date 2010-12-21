@@ -1,7 +1,6 @@
 require 'superators'
 
 describe "The 'superator' macro" do
-
   it "should allow two superators to begin with the first 'real' operator" do
     superatored = Class.new do
       superator("--") { throw :superator_dash_dash  }
@@ -59,11 +58,20 @@ describe "The 'superator' macro" do
 
   # This one is going to be very difficult to implement. method_added() maybe?
   it "should work even when the superator's 'main' method is redefined after the superator macro" do
-    victim = Class.new do
-      def <(_) throw :first end
-      superator("<~~") { throw :superator }
-      def <(_) throw :last end
-    end
+    victim = Class.new {
+      def <(_)
+        throw :first
+      end
+
+      superator("<~~") {
+        throw :superator
+      }
+
+      def <(_)
+        throw :last
+      end
+    }
+
     lambda { victim.new()  <  Object.new }.should throw_symbol(:last)
     lambda { victim.new() <~~ Object.new }.should throw_symbol(:superator)
   end
@@ -117,7 +125,7 @@ describe "Defined binary superators" do
 
 end
 
-describe "The superator_send method" do
+describe "The _send method" do
 
   it "should execute the block within the object's instance (so self is the instance, not the class)" do
     Class.new do
@@ -132,43 +140,43 @@ describe "The superator_send method" do
       superator("-+-+~++~") {}
     end
     victim, operand = x.new, "a clue"
-    victim.should_receive(:superator_send).once.with("-+-+~++~", operand)
+    victim.should_receive(:_send).once.with("-+-+~++~", operand)
     victim -+-+~++~ operand
   end
 
   it "should exist on an Object instance" do
-    Object.new.should respond_to(:superator_send)
+    Object.new.should respond_to(:_send)
   end
 
   it "should raise NameError if an invalid superator is given" do
     lambda do
-      Object.new.superator_send("17BB&DB & !!  @", Object.new.extend(SuperatorFlag))
+      Object.new._send("17BB&DB & !!  @", Object.new.extend(SuperatorFlag))
     end.should raise_error(NameError)
   end
 
 end
 
-describe "The respond_to_superator? method" do
+describe "The superates? method" do
 
   it "should be available on all objects" do
-    Object.new.should respond_to(:respond_to_superator?)
+    Object.new.should respond_to(:superates?)
   end
 
   it "should return true if a superator was defined for the object's class" do
     Class.new do
       superator("<--") {}
-    end.new.respond_to_superator?("<--").should be_true
+    end.new.superates?("<--").should be_true
   end
 
   it "should return true if a superator was defined for the object's superclass" do
     parent = Class.new do
       superator("<=~~") {}
     end
-    Class.new(parent) {}.new.respond_to_superator?("<=~~").should be_true
+    Class.new(parent) {}.new.superates?("<=~~").should be_true
   end
 
   it "should return false or nil if a superator was not defined" do
-    result = Class.new.new.respond_to_superator?("<" + ("-" * 100))
+    result = Class.new.new.superates?("<" + ("-" * 100))
     (!! result).should be_false
   end
 
@@ -176,8 +184,8 @@ describe "The respond_to_superator? method" do
     labrat = Class.new do
       superator("<" + ('~' * 10)) {}
     end.new
-    (!! labrat.respond_to_superator?('<' + ('~' * 11))).should be_false
-    (!! labrat.respond_to_superator?('<' + ('~' *  9))).should be_false
+    (!! labrat.superates?('<' + ('~' * 11))).should be_false
+    (!! labrat.superates?('<' + ('~' *  9))).should be_false
   end
 
 end
@@ -195,14 +203,14 @@ describe "The undef_superator method" do
     end.should raise_error(NameError)
   end
 
-  it "should make respond_to_superator?() return false" do
+  it "should make superates?() return false" do
     sup = "<<---"
     klass = Class.new do
       superator(sup) {}
     end
     obj = klass.new
     obj.undef_superator sup
-    obj.respond_to_superator?(sup).should be_false
+    obj.superates?(sup).should be_false
   end
 
 end
@@ -216,7 +224,7 @@ describe "The monkey patch" do
 
 end
 
-describe "The defined_superators() method" do
+describe "The superators() method" do
 
   it "should return an array of superator Strings when called on an object" do
     sups = %w"-- ++ +- -+"
@@ -225,7 +233,7 @@ describe "The defined_superators() method" do
         superator(sup) {}
       end
     end
-    defined = klass.new.defined_superators
+    defined = klass.new.superators
 
     defined.should be_kind_of(Array)
     defined.size.should == sups.size
@@ -236,7 +244,7 @@ describe "The defined_superators() method" do
     parent = Class.new do
       superator("--") {}
     end
-    Class.new(parent).new.defined_superators.should include("--")
+    Class.new(parent).new.superators.should include("--")
   end
 
 end
@@ -244,28 +252,28 @@ end
 describe "The 'real' operator finding algorithm" do
 
   it "should work with minus and unary negation" do
-    real_operator_from_superator("---").should == "-"
+    real_operator("---").should == "-"
   end
 
   it "should work with plus and unary plus" do
-    real_operator_from_superator("+++").should == "+"
+    real_operator("+++").should == "+"
   end
 
   it "should return nil when given only unary tildes" do
-    real_operator_from_superator("~~~").should be_nil
+    real_operator("~~~").should be_nil
   end
 
   it "should work properly with the operators that are expanded versions of other operators" do
-    real_operator_from_superator("<<--").should == "<<"
-    real_operator_from_superator("<~~-").should == "<"
-    real_operator_from_superator("**+~").should == "**"
-    real_operator_from_superator("*+~~").should == "*"
-    real_operator_from_superator("<=~~").should == "<="
-    real_operator_from_superator(">=+-").should == ">="
-    real_operator_from_superator("=~~~").should == "=~"
-    real_operator_from_superator("<=>+").should == "<=>"
-    real_operator_from_superator("===+").should == "==="
-    real_operator_from_superator("==+-").should == "=="
+    real_operator("<<--").should == "<<"
+    real_operator("<~~-").should == "<"
+    real_operator("**+~").should == "**"
+    real_operator("*+~~").should == "*"
+    real_operator("<=~~").should == "<="
+    real_operator(">=+-").should == ">="
+    real_operator("=~~~").should == "=~"
+    real_operator("<=>+").should == "<=>"
+    real_operator("===+").should == "==="
+    real_operator("==+-").should == "=="
   end
 end
 
@@ -280,26 +288,26 @@ describe "Superator method en-/decoding" do
 
   it "should return the same value after encoding and decoding" do
     @uses.keys.each do |operator|
-      superator_decode(superator_encode(operator)).should == operator
+      decode(encode(operator)).should == operator
     end
   end
 
   it "should encode binary superators properly" do
-    @uses.each_pair { |key, value| superator_encode(key).should == value }
+    @uses.each_pair { |key, value| encode(key).should == value }
   end
 
   it "should decode binary superators properly" do
-    @uses.each_pair { |key, value| superator_decode(value).should == key }
+    @uses.each_pair { |key, value| decode(value).should == key }
   end
 
   it "should create proper method definition name" do
     op = "|+-"
-    superator_definition_name_for(op).should =~ /#{superator_encode(op)}$/
+    name_for(op).should =~ /#{encode(op)}$/
   end
 
   it "should be containable in a method definition" do
     lambda do
-      eval ":jay_#{superator_encode("<<+~--")}"
+      eval ":jay_#{encode("<<+~--")}"
     end.should_not raise_error(SyntaxError)
   end
 

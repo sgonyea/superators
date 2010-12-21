@@ -4,4 +4,4 @@ $:.unshift(File.dirname(__FILE__)) unless
 require 'superators/macro'
 require 'superators/monkey_patch'
 
-include SuperatorMixin
+include Superators
