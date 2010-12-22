@@ -1,6 +1,6 @@
 class Object
   superator "<-" do |operand|
-    self.= operand
+    self = operand
   end
 end
 
