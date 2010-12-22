@@ -218,8 +218,8 @@ end
 describe "The monkey patch" do
 
   it "should create a superators attr_reader" do
-    Object.new.should     respond_to(:superator_queue)
-    Object.new.should_not respond_to(:superator_queue=)
+    Object.new.should     respond_to(:superator_stack)
+    Object.new.should_not respond_to(:superator_stack=)
   end
 
 end
@@ -252,28 +252,28 @@ end
 describe "The 'real' operator finding algorithm" do
 
   it "should work with minus and unary negation" do
-    real_operator("---").should == "-"
+    grep_binary_operator("---").should == "-"
   end
 
   it "should work with plus and unary plus" do
-    real_operator("+++").should == "+"
+    grep_binary_operator("+++").should == "+"
   end
 
   it "should return nil when given only unary tildes" do
-    real_operator("~~~").should be_nil
+    grep_binary_operator("~~~").should be_nil
   end
 
   it "should work properly with the operators that are expanded versions of other operators" do
-    real_operator("<<--").should == "<<"
-    real_operator("<~~-").should == "<"
-    real_operator("**+~").should == "**"
-    real_operator("*+~~").should == "*"
-    real_operator("<=~~").should == "<="
-    real_operator(">=+-").should == ">="
-    real_operator("=~~~").should == "=~"
-    real_operator("<=>+").should == "<=>"
-    real_operator("===+").should == "==="
-    real_operator("==+-").should == "=="
+    grep_binary_operator("<<--").should == "<<"
+    grep_binary_operator("<~~-").should == "<"
+    grep_binary_operator("**+~").should == "**"
+    grep_binary_operator("*+~~").should == "*"
+    grep_binary_operator("<=~~").should == "<="
+    grep_binary_operator(">=+-").should == ">="
+    grep_binary_operator("=~~~").should == "=~"
+    grep_binary_operator("<=>+").should == "<=>"
+    grep_binary_operator("===+").should == "==="
+    grep_binary_operator("==+-").should == "=="
   end
 end
 

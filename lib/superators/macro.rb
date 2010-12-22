@@ -11,7 +11,7 @@ module Superators
   def _send(sup, operand)
     raise NoMethodError, "Superator #{sup} has not been defined on #{self.class}" unless superates?(sup)
 
-    __send__ name_for(sup), operand
+    __send__(name_for(sup), operand)
   end
 
   def superates?(sup)
@@ -25,34 +25,30 @@ module Superators
 protected
   def superator(operator, &block)
     raise ArgumentError, "block not supplied"     unless block_given?
-    raise ArgumentError, "Not a valid superator!" unless valid? operator
+    raise ArgumentError, "Not a valid superator!" unless valid?(operator)
 
-    real_operator = real_operator(operator)
+    binary_operator = grep_binary_operator(operator)
 
     class_eval do
       # Step in front of the old operator's dispatching.
-      alias_for_real_method = alias_for real_operator
-
-      if instance_methods.include?(real_operator) && !superates?(operator)
-        alias_method alias_for_real_method, real_operator
-      end
+      real_method_alias = alias_superator(binary_operator, operator)
 
       define_method(name_for(operator), &block)
 
       # When we get to the method defining, we have to know whether the superator had to be aliased or if it's new entirely.
-      define_method(real_operator) do |operand|
-        if operand.kind_of?(SuperatorFlag) && operand.superator_queue.any?
-          sup = operand.superator_queue.unshift(real_operator).join
+      define_method(binary_operator) do |operand|
+        if operand.kind_of?(SuperatorFlag) && operand.has_stack?
+          sup = operand.unshift_stack(binary_operator).join
 
-          operand.superator_queue.clear
+          operand.clear_stack
 
           _send(sup, operand)
         else
           # If the method_alias is defined
-          if respond_to?(alias_for_real_method)
-            __send__(alias_for_real_method, operand)
+          if respond_to?(real_method_alias)
+            __send__(real_method_alias, operand)
           else
-            raise NoMethodError, "undefined method #{real_operator} for #{operand.inspect}:#{operand.class}"
+            raise NoMethodError, "undefined method #{binary_operator} for #{operand.inspect}:#{operand.class}"
           end
         end
       end
@@ -60,15 +56,15 @@ protected
 
     def undef_superator(sup)
       if superates?(sup)
-        real_operator       = real_operator(sup)
-        real_operator_alias = alias_for(sup)
+        binary_operator       = grep_binary_operator(sup)
+        binary_operator_alias = alias_for(sup)
 
-        (class << self; self; end).instance_eval do
+        class << self; self; end.instance_eval do
           undef_method(name_for sup)
-          if respond_to? real_operator_alias
-            alias_method(real_operator, real_operator_alias) if superators.empty?
+          if respond_to?(binary_operator_alias)
+            alias_method(binary_operator, binary_operator_alias) if superators.empty?
           else
-            undef_method real_operator
+            undef_method(binary_operator)
           end
         end
       else
@@ -78,11 +74,22 @@ protected
   end # def superator
 
 private
+  def alias_superator(binary_operator, super_operator)
+    real_method_alias = alias_for(binary_operator)
+
+    if instance_methods.include?(binary_operator) && !superates?(super_operator)
+      alias_method(real_method_alias, binary_operator)
+    end
+
+    return real_method_alias
+  end
+
   def encode(str)
     tokenizer = /#{BINARY_OPER_PATTERN}|#{UNARY_OPS_SANS_ATSYM}/
+
     str.scan(tokenizer).map {|op|
-      op.each_char.map {|s| s[0]}.join "_"
-    }.join "__"
+      op.each_char.map {|s| s[0]}.join("_")
+    }.join("__")
   end
 
   def decode(str)
@@ -93,7 +100,7 @@ private
     end
   end
 
-  def real_operator(sup)
+  def grep_binary_operator(sup)
     sup[/^#{BINARY_OPER_PATTERN}/]
   end
 
@@ -110,4 +117,5 @@ private
   end
 end
 
-module SuperatorFlag; end
+module SuperatorFlag
+end
